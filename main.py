@@ -9,12 +9,14 @@ def animate_image(y: List[np.ndarray]):
     fig = plt.figure()
     ims = []
     plt.cla()
-    for i in range(len(y)):
-        t = plt.text(0, 0, "iter: {}".format(str(i)))
+    IMG_SIZE=30
+    for i in range(IMG_SIZE):
+        idx = int(i*len(y)/IMG_SIZE)
+        t = plt.text(0, 0, "iter: {}".format(str(idx)))
         t.set_bbox(dict(facecolor='white', alpha=0.8, edgecolor='white'))
-        im = plt.imshow(y[i], animated=True)
+        im = plt.imshow(y[idx], animated=True)
         ims.append([im])
-    ani = ArtistAnimation(fig, ims, interval=30)
+    ani = ArtistAnimation(fig, ims, interval=1500/IMG_SIZE)
     ani.save("result.gif", writer="pillow")
 
 class HopfieldNetwork:
@@ -43,20 +45,25 @@ class HopfieldNetwork:
         assert image.shape == (self.N,), "image shape must be (25,)"
         self.iter = iter
         self.init_weight()
+
+        # Hebbian learning (初期化)
+        self.weights = np.dot(image.reshape(self.N, 1), image.reshape(1, self.N))
+
         n = 1
         weight_list = []
         for _ in range(self.iter):
+            # 非同期更新
             i = np.random.randint(0, self.N)
             j = np.random.randint(0, self.N)
+
+            if i == j:
+                continue
 
             x_new = self.predict(image)
             assert x_new.shape == (self.N,), "image shape must be (25,)"
             
             self.weights[i][j] = (n-1)/n *self.weights[i][j] +  (1/n)*x_new[i]*x_new[j]
             self.weights[j][i] = self.weights[i][j]
-
-            # 体格成分は0にする
-            np.fill_diagonal(self.weights, 0)
 
             weight_list.append(self.weights.reshape(self.N, self.N))
         if print_weight:
@@ -72,7 +79,7 @@ class HopfieldNetwork:
 def main1():
     print("hello world")
     net = HopfieldNetwork()
-    img = IMAGES[0]
+    img = IMAGES[1]
     print(img)
     net.train(img,1000, True)
 
@@ -83,7 +90,18 @@ def main1():
         y= net.predict(y)
         res.append(y.reshape(5,5))
     print_image(y)
-    # animate_image(res)
+    animate_image(res)
+
+    # add noise
+    for noise_range in range(5, 20, 5):
+        print("noise range: ", noise_range)
+        img_noised = add_noise(img, noise_range/100)
+        print_image(img_noised)
+        y = net.predict(img_noised)
+        for _ in range(100):
+            y= net.predict(y)
+        print_image(y)
+        print()
 
 def test():
     index = 0

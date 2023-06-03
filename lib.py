@@ -44,10 +44,24 @@ images_= {
         [0,0,0,0,1],
         [1,1,1,1,1],
         ]),
+    6: np.array([
+        [0,1,1,1,0],
+        [1,0,0,0,0],
+        [1,1,1,1,1],
+        [1,0,0,0,1],
+        [0,1,1,1,0],
+        ]),
+    7: np.array([
+        [1,1,1,1,1],
+        [0,0,0,1,0],
+        [0,0,1,0,0],
+        [0,1,0,0,0],
+        [1,0,0,0,0],
+        ]),
 }
 
 IMAGES= {}
-for i in range(5):
+for i in range(len(images_.keys())):
     IMAGES[i] = np.reshape(images_[i]*2-1, (25,))
 
 # add noise to images
@@ -60,8 +74,8 @@ def add_noise(img: np.ndarray, rate=0.1):
     for _ in range(int(h*w*rate)):
         y = np.random.randint(0, h)
         x = np.random.randint(0, w)
-        img[y][x] = 1 if img[y][x] == 0 else 0
-    return img
+        img[y][x] *= -1
+    return img.reshape(25,)
 
 def print_image(img: np.ndarray):
     img = np.reshape(img, (5,5))
