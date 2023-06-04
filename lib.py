@@ -66,16 +66,18 @@ for i in range(len(images_.keys())):
 
 # add noise to images
 def add_noise(img: np.ndarray, rate=0.1):
-    img = np.reshape(img, (5,5))
+    img2 = np.copy(img)
+    img2 = np.reshape(img2, (5,5))
+    # deepcopy 
     # 画像のサイズを取得
-    h, w = img.shape
+    h, w = img2.shape
     assert h == w == 5, '画像のサイズは5x5である必要があります'
     # ノイズを追加
     for _ in range(int(h*w*rate)):
         y = np.random.randint(0, h)
         x = np.random.randint(0, w)
-        img[y][x] *= -1
-    return img.reshape(25,)
+        img2[y][x] *= -1
+    return img2.reshape(25,)
 
 def print_image(img: np.ndarray):
     img = np.reshape(img, (5,5))

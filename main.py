@@ -1,5 +1,6 @@
 from lib import IMAGES, add_noise, print_image
 import numpy as np
+import os
 from matplotlib.animation import ArtistAnimation
 import matplotlib.pyplot as plt
 from typing import List
@@ -41,25 +42,31 @@ class HopfieldNetwork:
         ani = ArtistAnimation(fig, ims, interval=int(1500 / IMG_SIZE))
         ani.save("weight.gif")
 
-    def train(self, image: np.ndarray,iter=100, print_weight=False):
-        assert image.shape == (self.N,), "image shape must be (25,)"
+    def train(self, image: List[np.ndarray],iter=100, print_weight=False):
+        for i in image:
+            assert i.shape == (self.N,), "image shape must be (25,)"
         self.iter = iter
         self.init_weight()
 
+        Q = len(image)
+        assert Q > 0, "image must be more than 1"
+
         # Hebbian learning (初期化)
-        self.weights = np.dot(image.reshape(self.N, 1), image.reshape(1, self.N))
+        self.weights = np.sum([np.dot(i.reshape(self.N, 1), i.reshape(1, self.N)) for i in image], axis=0, dtype=np.float64) 
+        self.weights /= Q
 
         n = 1
         weight_list = []
         for _ in range(self.iter):
             # 非同期更新
+            image_index = np.random.randint(0, Q)
             i = np.random.randint(0, self.N)
             j = np.random.randint(0, self.N)
 
             if i == j:
                 continue
 
-            x_new = self.predict(image)
+            x_new = self.predict(image[image_index])
             assert x_new.shape == (self.N,), "image shape must be (25,)"
             
             self.weights[i][j] = (n-1)/n *self.weights[i][j] +  (1/n)*x_new[i]*x_new[j]
@@ -76,40 +83,83 @@ class HopfieldNetwork:
         y = sign(self.weights @ y)
         return y
 
-def main1():
-    print("hello world")
+    def predict_n(self, image:np.ndarray, n:int=100):
+        y = image
+        for _ in range(n):
+            y = self.predict(y)
+        return y
+
+    def check_acc(self,img:np.ndarray, random_rate:float, iteration=100):
+        acc = 0
+        for _ in range(iteration):
+            x = add_noise(img, random_rate)
+            y = self.predict_n(x)
+            if np.all(y == img):
+                acc+=1
+        print("acc: ", acc/100, "at", random_rate)
+        return acc
+
+def problem1():
+    print("--- problem 1 ---")
     net = HopfieldNetwork()
     img = IMAGES[1]
     print(img)
-    net.train(img,1000, True)
+    net.train([img],1000, True)
 
     print_image(img)
-    y= net.predict(img)
-    res = []
-    for _ in range(100):
-        y= net.predict(y)
-        res.append(y.reshape(5,5))
+    y =net.predict_n(img) 
     print_image(y)
-    animate_image(res)
 
-    # add noise
-    for noise_range in range(5, 20, 5):
-        print("noise range: ", noise_range)
-        img_noised = add_noise(img, noise_range/100)
-        print_image(img_noised)
-        y = net.predict(img_noised)
-        for _ in range(100):
-            y= net.predict(y)
-        print_image(y)
-        print()
+    acc_list = []
+    print_image(img)
+    for noise_range in range(5, 50):
+        acc = net.check_acc(img, noise_range/100)
+        print("noise range: ", noise_range, acc)
+        acc_list.append(acc)
 
-def test():
-    index = 0
-    for i in IMAGES.values():
-        print(" -----   ", index, "   ----- ")
+    # plot it 
+    plt.plot(range(5, 50), acc_list)
+    plt.xlabel("noise range")
+    plt.ylabel("accuracy")
+    plt.savefig("result.png")
+
+
+def problem2():
+    print("--- problem 2 ---")
+    net = HopfieldNetwork()
+    img_list= list(IMAGES.values())[0:2]
+    print(img_list.__len__)
+    for i in img_list:
         print_image(i)
-        print_image(add_noise(i))
-        index+=1
+
+    net.train(img_list,1000, True)
+
+    plt.clf()
+    acc_list = {}
+    noise_rate_list = {}
+    for key in range(len(img_list)):
+        for p in range(0,101, 5):
+            img = img_list[key]
+            acc = net.check_acc(img, p/100)
+
+            if key not in acc_list:
+                acc_list[key] = []
+            acc_list[key].append(acc)
+
+            if key not in noise_rate_list:
+                noise_rate_list[key] = []
+            noise_rate_list[key].append(p/100)
+
+    print(acc_list)
+    # plot it
+    for key in acc_list:
+        plt.plot(noise_rate_list[key], acc_list[key], label="image {}".format(key))
+    plt.xlabel("noise range")
+    plt.ylabel("accuracy")
+    plt.legend()
+    plt.savefig("result2.png")
+    plt.show()
 
 if __name__ == "__main__":
-    main1()
+    # problem1()
+    problem2()
