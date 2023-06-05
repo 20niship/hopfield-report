@@ -62,7 +62,8 @@ images_= {
 
 IMAGES= {}
 for i in range(len(images_.keys())):
-    IMAGES[i] = np.reshape(images_[i]*2-1, (25,))
+    key = list(images_.keys())[i]
+    IMAGES[i] = np.reshape(images_[key]*2-1, (25,))
 
 # add noise to images
 def add_noise(img: np.ndarray, rate=0.1):
